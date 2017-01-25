@@ -14,9 +14,11 @@ class Boggle(object):
     def importDictionary(self, dictFile):
         self.dictPrefix = [set() for i in range(20)]
         self.dict=[set() for i in range(20)]
+        lsatLine=""
         with open(dictFile) as f:
             for word in f:
                 word = word[:-1]
+                lastline=word
                 if "qu" in word:
                     self.handleQU(word)
                 for i in range(len(word)-1):
@@ -25,7 +27,8 @@ class Boggle(object):
                         self.dictPrefix[i].add(word)
                     else:
                         self.dictPrefix[i].add(word[:i + 2])
-
+        self.dict[len(lastline)-2].add(lastline)
+        self.dictPrefix[len(lastline)-2].add(lastline)
     def handleQU(self, word):
         tempString = ""
         for letter in word:
