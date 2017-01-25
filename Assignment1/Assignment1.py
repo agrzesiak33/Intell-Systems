@@ -17,19 +17,36 @@ class Boggle(object):
         with open(dictFile) as f:
             for word in f:
                 word = word[:-1]
-                # every prefix of every length
+                if "qu" in word:
+                    self.handleQU(word)
                 for i in range(len(word)-1):
                     if i==(len(word)-2):
-                        #temp = word + "_"
-                        #self.dictPrefix[i].add(temp)
                         self.dict[i].add(word)
+                        self.dictPrefix[i].add(word)
                     else:
                         self.dictPrefix[i].add(word[:i + 2])
+
+    def handleQU(self, word):
+        tempString = ""
+        for letter in word:
+            if tempString=="":
+                tempString+=letter
+            elif tempString[-1]=="q" and letter=="u":
+                continue
+            else:
+                tempString+=letter
+
+        for i in range(len(tempString) - 1):
+            if i == (len(tempString) - 2):
+                self.dict[i].add(tempString)
+                self.dictPrefix[i].add(tempString)
+            else:
+                self.dictPrefix[i].add(tempString[:i + 2])
 
     def boggle(self):
         self.numberOfMoves=0
         self.numberQueries=0
-        startTime= time.time()
+        startTime= time.perf_counter()
         self.goodWords = []
         self.dimen = int(math.sqrt(len(self.board)))
         for index, letter in enumerate(self.board, start=0):
