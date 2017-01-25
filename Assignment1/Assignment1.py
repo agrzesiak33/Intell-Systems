@@ -29,6 +29,7 @@ class Boggle(object):
                         self.dictPrefix[i].add(word[:i + 2])
         self.dict[len(lastline)-2].add(lastline)
         self.dictPrefix[len(lastline)-2].add(lastline)
+
     def handleQU(self, word):
         tempString = ""
         for letter in word:
@@ -46,11 +47,31 @@ class Boggle(object):
             else:
                 self.dictPrefix[i].add(tempString[:i + 2])
 
+    def printEverything(self, timeTaken):
+        print("CURRENT BOARD: ")
+        for i in range(0, self.dimen):
+            for j in range(i*self.dimen, i*self.dimen+self.dimen):
+                print(self.board[j].upper(), end="  ")
+            print()
+        print()
+
+
+        print("Searched total of ", self.numberOfMoves, "moves in ", timeTaken, "seconds")
+        print()
+        allWords=list()
+        for index, solution in enumerate(self.goodWords, start=2):
+            if solution:
+                allWords.extend(list(solution))
+                print(index, '\t', "-letter words: ", list(solution))
+        print()
+        print("Found ", len(allWords), " words in total. \nAlphabetically sorted list:")
+        allWords.sort()
+        print(allWords)
+
     def boggle(self):
         self.numberOfMoves=0
-        self.numberQueries=0
         startTime= time.perf_counter()
-        self.goodWords = []
+        self.goodWords = [set() for i in range(20)]
         self.dimen = int(math.sqrt(len(self.board)))
         for index, letter in enumerate(self.board, start=0):
             currentWordIndicies=[index]
@@ -58,13 +79,8 @@ class Boggle(object):
             tempTime=time.time()
             self.recBoggle(currentWordLetters, currentWordIndicies)
         endTime = time.perf_counter()-startTime
-        self.goodWords = list(set(self.goodWords))
-        self.goodWords.sort()
-        print ("Good words", self.goodWords)
-        print ("Length of good words", len(self.goodWords))
-        print ("Time: ", endTime)
-        print ("Number of moves: ",self.numberOfMoves)
-        print ("Number of full dict queries: ", self.numberQueries)
+        self.printEverything(endTime)
+        return endTime
 
     def recBoggle(self, currentWordLetters, currentWordIndicies):
         foundPartial = False
@@ -73,8 +89,7 @@ class Boggle(object):
             if(currentWordLetters in self.dictPrefix[len(currentWordLetters)-2]):
                 foundPartial=True
                 if currentWordLetters in self.dict[len(currentWordLetters)-2]:
-                    self.goodWords.append(currentWordLetters)
-                    self.numberQueries+=1
+                    self.goodWords[len(currentWordLetters)-2].add(currentWordLetters)
 
         if foundPartial == True or len(currentWordLetters) == 1:
             temp=list(currentWordIndicies)
