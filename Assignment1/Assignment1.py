@@ -54,11 +54,7 @@ class Boggle(object):
             currentWordLetters=letter
             tempTime=time.time()
             self.recBoggle(currentWordLetters, currentWordIndicies)
-            print(index, " ", letter, " ", time.time()-tempTime)
-            print("Number of moves: ", self.numberOfMoves)
-            print("Number of queries: ", self.numberQueries)
-            print()
-        endTime = time.time()-startTime
+        endTime = time.perf_counter()-startTime
         self.goodWords = list(set(self.goodWords))
         self.goodWords.sort()
         print ("Good words", self.goodWords)
@@ -76,7 +72,6 @@ class Boggle(object):
                 if currentWordLetters in self.dict[len(currentWordLetters)-2]:
                     self.goodWords.append(currentWordLetters)
                     self.numberQueries+=1
-
 
         if foundPartial == True or len(currentWordLetters) == 1:
             temp=list(currentWordIndicies)
