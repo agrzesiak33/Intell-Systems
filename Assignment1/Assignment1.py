@@ -12,15 +12,22 @@ class Boggle(object):
                     self.board.append(char.lower())
 
     def importDictionary(self, dictFile):
+        #dictPrefix is a list of sets
+        #list[0] contains a list with prefixes of length 2
+        #list[1] contains a list with prefixes of length 3 adn so on
         self.dictPrefix = [set() for i in range(20)]
+        #dict is a set containg the actual dictionary with all full words
         self.dict=[set() for i in range(20)]
-        lsatLine=""
+        lastLine=""
         with open(dictFile) as f:
             for word in f:
                 word = word[:-1]
                 lastline=word
+                #Handeling the q case
                 if "qu" in word:
                     self.handleQU(word)
+                    #iterates through the word and adds every version of the word starting with
+                    #the first letter
                 for i in range(len(word)-1):
                     if i==(len(word)-2):
                         self.dict[i].add(word)
@@ -30,6 +37,8 @@ class Boggle(object):
         self.dict[len(lastline)-2].add(lastline)
         self.dictPrefix[len(lastline)-2].add(lastline)
 
+    #I handle the qu case by adding the word with adn without the u in the word.
+    #As per the instructions, a board with the word 'qeen' should be translated as 'queen'.
     def handleQU(self, word):
         tempString = ""
         for letter in word:
@@ -54,8 +63,6 @@ class Boggle(object):
                 print(self.board[j].upper(), end="  ")
             print()
         print()
-
-
         print("Searched total of ", self.numberOfMoves, "moves in ", timeTaken, "seconds")
         print()
         allWords=list()
@@ -86,11 +93,16 @@ class Boggle(object):
         foundPartial = False
         if len(currentWordLetters)>1:
             self.numberOfMoves += 1
+            #If the sequence of letters is in the prefix dictionary, we acknowledge that we found
+            #a partial word and need to do more searching, then we check to see if the sequence
+            # is actually a word and if it is, it gets added to the found set.
             if(currentWordLetters in self.dictPrefix[len(currentWordLetters)-2]):
                 foundPartial=True
                 if currentWordLetters in self.dict[len(currentWordLetters)-2]:
                     self.goodWords[len(currentWordLetters)-2].add(currentWordLetters)
 
+        #everything in here is checking the positions around the current letter and recursively calling
+        # itself if it is an open position.
         if foundPartial == True or len(currentWordLetters) == 1:
             temp=list(currentWordIndicies)
             #right of col 0, room to move left
@@ -101,13 +113,15 @@ class Boggle(object):
                                    temp)
                     temp=list(currentWordIndicies)
                 #room to move left and up
-                if (currentWordIndicies[-1] > self.dimen - 1) and (currentWordIndicies[-1]-self.dimen-1) not in currentWordIndicies:
+                if (currentWordIndicies[-1] > self.dimen - 1) and \
+                                (currentWordIndicies[-1]-self.dimen-1) not in currentWordIndicies:
                     temp.append(currentWordIndicies[-1] - self.dimen - 1)
                     self.recBoggle(currentWordLetters + self.board[temp[-1]],
                                    temp)
                     temp=list(currentWordIndicies)
                 #room to move left and down
-                if (currentWordIndicies[-1] < (len(self.board) - self.dimen)) and (currentWordIndicies[-1] + self.dimen -1) not in currentWordIndicies:
+                if (currentWordIndicies[-1] < (len(self.board) - self.dimen)) and \
+                                (currentWordIndicies[-1] + self.dimen -1) not in currentWordIndicies:
                     temp.append(currentWordIndicies[-1] + self.dimen-1)
                     self.recBoggle(currentWordLetters + self.board[temp[-1]],
                                    temp)
@@ -120,25 +134,29 @@ class Boggle(object):
                                    temp)
                     temp=list(currentWordIndicies)
                 # room to move right and up
-                if currentWordIndicies[-1] > self.dimen - 1 and currentWordIndicies[-1]-self.dimen +1 not in currentWordIndicies:
+                if currentWordIndicies[-1] > self.dimen - 1 and \
+                                                currentWordIndicies[-1]-self.dimen +1 not in currentWordIndicies:
                     temp.append(currentWordIndicies[-1] - self.dimen + 1)
                     self.recBoggle(currentWordLetters + self.board[temp[-1]],
                                    temp)
                     temp=list(currentWordIndicies)
                 # room to move right and down
-                if currentWordIndicies[-1] < (len(self.board) - self.dimen - 1) and currentWordIndicies[-1]+self.dimen+1 not in currentWordIndicies:
+                if currentWordIndicies[-1] < (len(self.board) - self.dimen - 1) and \
+                                                currentWordIndicies[-1]+self.dimen+1 not in currentWordIndicies:
                     temp.append(currentWordIndicies[-1] + self.dimen + 1)
                     self.recBoggle(currentWordLetters + self.board[temp[-1]],
                                    temp)
                     temp=list(currentWordIndicies)
             #below row 0, room to move up
-            if currentWordIndicies[-1] > self.dimen-1 and currentWordIndicies[-1] - self.dimen not in currentWordIndicies:
+            if currentWordIndicies[-1] > self.dimen-1 and \
+                                    currentWordIndicies[-1] - self.dimen not in currentWordIndicies:
                 temp.append(currentWordIndicies[-1] - self.dimen)
                 self.recBoggle(currentWordLetters + self.board[temp[-1]],
                                temp)
                 temp=list(currentWordIndicies)
             #above row -1, room to move down
-            if currentWordIndicies[-1]<(len(self.board)-self.dimen) and currentWordIndicies[-1] +self.dimen not in currentWordIndicies:
+            if currentWordIndicies[-1]<(len(self.board)-self.dimen) and \
+                                    currentWordIndicies[-1] +self.dimen not in currentWordIndicies:
                 temp.append(currentWordIndicies[-1] + self.dimen)
                 self.recBoggle(currentWordLetters + self.board[temp[-1]],
                                temp)
