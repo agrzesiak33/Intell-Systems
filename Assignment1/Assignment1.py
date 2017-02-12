@@ -57,11 +57,7 @@ class Boggle(object):
                 self.dictPrefix[i].add(tempString[:i + 2])
 
     def printEverything(self, timeTaken):
-        print("CURRENT BOARD: ")
-        for i in range(0, self.dimen):
-            for j in range(i*self.dimen, i*self.dimen+self.dimen):
-                print(self.board[j].upper(), end="  ")
-            print()
+        print("CURRENT BOARD: ", self.dimen, "X", self.dimen)
         print()
         print("Searched total of ", self.numberOfMoves, "moves in ", timeTaken, "seconds")
         print()
@@ -164,12 +160,11 @@ class Boggle(object):
 
 
 boggleInstance = Boggle()
-boggleInstance.importBoard("board.txt")
+boggleInstance.importBoard("tenboard2.txt")
 boggleInstance.importDictionary("dict.txt")
 # for i in range(4):
 #     print (boggleInstance.dictPrefix[i])
 #     print (len(boggleInstance.dictPrefix[i]))
 #print (boggleInstance.board)
 #print (boggleInstance.dict)
-
 boggleInstance.boggle()
