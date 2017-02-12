@@ -112,7 +112,20 @@ class Scroggle(object):
 
         if(foundPartial == True):
             availablePaths=self.findPossiblePaths(currentPath[1])
+            if availablePaths == []:
+                return
 
+            newWord=""
+            tempPath = currentPath
+            tempScore = 0
+            for availablePath in availablePaths:
+                newWord = currentPath[0] + self.board[(self.dimen * availablePath[0]) + availablePath[1]]
+                tempPath.append(availablePath)
+                tempScore = currentPath[2] + self.letterWeights[ ord(newWord[-1]) - ord('a') ]
+                self.frontier.append([newWord, tempPath, tempScore ])
+                tempPath=currentPath
+
+            self.scroggle(searchType)
 
 
 
