@@ -75,10 +75,10 @@ class Scroggle(object):
         mostRecent = currentPath[-1]
         availableMoves=[]
 
-        for x in range(currentPath[0]-1, currentPath[0]+1):
+        for x in range(mostRecent[0]-1, mostRecent[0]+1):
             if x < 0 or x >= self.dimen:
                 continue
-            for y in range(currentPath[1]-1, currentPath[0]+1):
+            for y in range(mostRecent[1]-1, mostRecent[0]+1):
                 if y < 0 or y >= self.dimen:
                     continue
                 if [x, y] not in currentPath:
@@ -93,8 +93,8 @@ class Scroggle(object):
     # @param[in]    searchType
     #               0 = DFS     1 = BFS     2 = A*
     def scroggle(self, searchType):
-        if self.numQueries==0:
-            return
+        #if self.numQueries==0:
+         #   return
 
         currentPath=[]
         if searchType ==0:
@@ -110,20 +110,20 @@ class Scroggle(object):
                 if currentPath[0] in self.dict:
                     self.goodWords.add(currentPath[0])
 
-        if(foundPartial == True):
+        if(foundPartial == True or len(currentPath[0])==1):
             availablePaths=self.findPossiblePaths(currentPath[1])
             if availablePaths == []:
                 return
 
             newWord=""
-            tempPath = currentPath
-            tempScore = 0
+            newPath = list(currentPath[1])
+            newScore = 0
             for availablePath in availablePaths:
                 newWord = currentPath[0] + self.board[(self.dimen * availablePath[0]) + availablePath[1]]
-                tempPath.append(availablePath)
-                tempScore = currentPath[2] + self.letterWeights[ ord(newWord[-1]) - ord('a') ]
-                self.frontier.append([newWord, tempPath, tempScore ])
-                tempPath=currentPath
+                newPath.append(availablePath)
+                newScore = currentPath[2] + self.letterWeights[ ord(newWord[-1]) - ord('a') ]
+                self.frontier.append([newWord, newPath, newScore ])
+                newPath=list(currentPath[1])
 
             self.scroggle(searchType)
 
@@ -133,4 +133,5 @@ scroggleInstance = Scroggle()
 scroggleInstance.importWeights("scrabble-vals.txt")
 scroggleInstance.importBoard("twoboard.txt")
 scroggleInstance.importDictionary("dict.txt")
-print(scroggleInstance.frontier)
+scroggleInstance.scroggle(0)
+print(scroggleInstance.goodWords)
