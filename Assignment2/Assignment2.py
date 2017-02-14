@@ -15,19 +15,28 @@ class Scroggle(object):
         self.letterWeights = []
         self.goodWords = set()
 
-
+    # @brief    Takes a file name and makes it usable
+    # @parem[in]    boardFile
+    #               String containing the name of a text file with the board
     def importBoard(self, boardFile):
         with open(boardFile) as f:
             for xindex, line in enumerate(f, start=0):
                 letters=line.split()
                 for yindex, char in enumerate(letters, start=0):
                     self.board.append(char.lower())
-                    self.frontier.append([char.lower(), [[xindex, yindex]], self.letterWeights[ord(char.lower())-ord('a')]])
+                    self.frontier.append([char.lower(),
+                                          [[xindex, yindex]],
+                                          self.letterWeights[ord(char.lower())-ord('a')]])
             self.dimen=xindex+1
         self.frontier=deque(self.frontier)
 
-    #I handle the qu case by adding the word with adn without the u in the word.
-    #As per the instructions, a board with the word 'qeen' should be translated as 'queen'.
+    # @brief    If the word has a 'qu' we handle it here
+    # @details  As per the instructions, a board with the word 'queen'
+    #           should be translated as 'qeen'.  If there is a naturall
+    #           occurance of 'queen' with the 'u', I treat this as a word
+    #           as well so in the master dictionary, 'queen' and 'qeen' occur
+    # @parem[in]    word
+    #               The string with a occurance of 'qu'
     def handleQU(self, word):
         stringWithU = ""
         stringWithoutU = ""
@@ -50,6 +59,16 @@ class Scroggle(object):
             self.numWordsWithPrefix[word] = 1
 
 
+    # @brief    Takes the name of the dictionary file and imports it
+    # @details  Here we go through the dictionary file and analyze each word
+    #           adding every possible prefix and the number of occurances to
+    #           numWordsWithPrefix.  There are two more dictionaries with the
+    #           same domain (ie all possible prefixes). Instead of counting
+    #           pure occurances, averageWordScore stores the average word score
+    #           that that prefix will produce if expanded and avgNumLettersAfterPrefix
+    #           stores the average number of letters that can be expected after the prefix ends
+    # @parem[in]    dictFile
+    #               String containing the name of a text file with a dictionary
     def importDictionary(self, dictFile):
         startTime = time.perf_counter()
         lastLine=""
@@ -96,13 +115,19 @@ class Scroggle(object):
         self.addTo_numWordsWithPrefix(lastline)
         print("Time to import dictionaries: ", time.perf_counter() - startTime)
 
-
+    # @brief    Converts a word into its total point value
+    # @parem[in]    word
+    #               A string containing a word with only lowercase letters
+    # @parem[out]   An int with the score of the inputted word
     def getWordScore(self, word):
         wordScore = 0
         for char in word:
             wordScore += self.letterWeights[ord(char) - ord('a')]
         return wordScore
 
+    # @brief    Takes a file with lines in this format: "X 0"
+    # @parem[in]    weightPath
+    #               A String containing the name of a text file with weights
     def importWeights(self, weightPath):
         with open(weightPath) as f:
             for line in f:
