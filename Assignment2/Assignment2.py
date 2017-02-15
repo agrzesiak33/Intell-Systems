@@ -1,5 +1,6 @@
 import time
 from collections import deque
+from operator import itemgetter
 
 class Scroggle(object):
 
@@ -153,8 +154,24 @@ class Scroggle(object):
                     availableMoves . append([x,y])
         return availableMoves
 
-    def heuristic1(self):
-        return
+    # @brief    Looks through the frontier and selects the best option to expand
+    # @details  This heuristic looks at three pieces of information.
+    #           (x) numWordsWithPrefix, (y) averageWordScore, and (z)avgNumLettersAfterPrefix
+    #           The 'goodness' equation score = ab + by + cz +d constants I came up with are
+    #           a = 2, b = 1, c = -10, d = 30.  If a prefix occurs many times in the
+    #           dictionary it will be 'rewarded'.  If the average score of a word
+    #           with that prefix is high it is 'rewarded'.  If the average number of letters after
+    #           the prefix is low, it is 'rewarded'; having more letters after the prefix decreases
+    #           the goodness quickly giving priority to prefixes that show up often and short prefixes.
+    # @param[out]   list containing the path that shows the most promise
+    # @notes    Assumes that each frontier node[3] is a number containing the 'goodness'
+    def heuristic(self, word, path, score, a, b, c, d):
+        try:
+            heuristicScore = (self.numWordsWithPrefix[word] * a) + (self.averageWordScore[word]*b) + (self.avgNumLettersAfterPrefix[word]*c) + d
+        except KeyError:
+            return
+        self.frontier.append([word, path, score, heuristicScore])
+        sorted(self.frontier, key = itemgetter(3))
 
 
     # @brief    Searches the board for goal states
@@ -166,9 +183,15 @@ class Scroggle(object):
     # @param[in[    queryLimit
     #               integer of the number of dictionary queries the solver is allowed
     #               queryLimit < 0 = unlimited      querLimit > 0 = finite
-    # $param[in]    dumbness
+    # @param[in]    dumbness
     #               True for no prefix optimization     False for optimization
-    def scroggle(self, searchType, queryLimit, dumbness):
+    # @params[in]   a, b, c, d
+    #               Only used for A* so if A* is selects as the searchType and the values
+    #               are not included, -1 is returned
+    # @param[out]   -1 if an error, 1 otherwise
+    def scroggle(self, searchType, queryLimit, dumbness, a = -1, b = -1, c = -1, d = -1):
+        if(searchType == 2 and a==-1 and b==-1 and c==-1 and d==-1):
+            return -1
         if(queryLimit == 0):
             return -1
         self.numQueries = queryLimit
@@ -179,16 +202,19 @@ class Scroggle(object):
         newPath = []
         newScore = 0
         foundPartial = False
+        totalScore = 0
 
         while self.frontier:
             if self.numQueries==0 and queryLimit > 0:
-                return
+                break
 
             currentPath=[]
             if searchType ==0:
                 currentPath=self.frontier.pop()
             elif searchType==1:
-              currentPath=self.frontier.popleft()
+                currentPath=self.frontier.popleft()
+            elif searchType == 2:
+                currentPath = self.frontier.pop()
 
 
 
@@ -205,6 +231,7 @@ class Scroggle(object):
                     foundPartial = True
                     if(currentPath[0] in self.dict):
                         self.goodWords.add(currentPath[0])
+                        totalScore += currentPath[2]
                 except KeyError:
                     foundPartial = False
 
@@ -221,10 +248,14 @@ class Scroggle(object):
                     newWord = currentPath[0] + self.board[(self.dimen * availablePath[0]) + availablePath[1]]
                     newPath.append(availablePath)
                     newScore = currentPath[2] + self.letterWeights[ ord(newWord[-1]) - ord('a') ]
-                    self.frontier.append([newWord, newPath, newScore ])
+                    if searchType == 2:
+                        self.heuristic(newWord, newPath, newScore, a, b, c, d)
+                    elif searchType == 0 or searchType == 1:
+                        self.frontier.append([newWord, newPath, newScore])
                     newPath=list(currentPath[1])
         print("Solver runtime: ", time.perf_counter()-startTime)
         print("Dict queries: ", dictQueries)
+        return 1
 
 
 
