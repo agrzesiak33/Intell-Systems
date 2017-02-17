@@ -174,22 +174,6 @@ class Scroggle(object):
         self.frontier.append([word, path, score, heuristicScore])
         return
 
-    # @brief    This h(n) takes the score of a word into account.  From previous runs the
-    #           words that are found are usualyl the ones with the fewest number of points.
-    #           Although their point values are small, their occurance is higher.
-    # @param[in]    word
-    #               The current string that we are interested in
-    # @param[in]    path
-    #               The x,y coordinates of letters that have been previously visited
-    # @param[in]    score
-    #               The score the word has accumulated so far
-    # @note     The popping is done in the scroggle function but for this heuristic,
-    #           the frontier is sorted with the highest scores on the right so when popping
-    #           nodes, they are to be taken from the left
-    def heuristic2(self, word, path, score):
-        self.frontier.append([word, path, score])
-        return
-
     # @brief    Searches the board for goal states
     # @details  Depending on the searchType, it usees BFS, DFS, or A* to
     #           search for goal states which in this case is a word in the dictionary
@@ -205,7 +189,7 @@ class Scroggle(object):
     #               Only used for A* so if A* is selects as the searchType and the values
     #               are not included, -1 is returned
     # @param[out]   -1 if an error, 1 otherwise
-    def scroggle(self, searchType, expansionLimit, dumbness, a = -1, b = -1, c = -1, d = -1):
+    def scroggle(self, searchType, expansionLimit, dumbness, printing, a = -1, b = -1, c = -1, d = -1):
         if (searchType == 2 and a == -1 and b == -1 and c == -1 and d == -1):
             return -1
         if (expansionLimit == 0):
@@ -246,7 +230,7 @@ class Scroggle(object):
             currentPath=[]
             if searchType ==0 or searchType == 2:
                 currentPath=self.frontier.pop()
-            elif searchType==1 or searchType == 3:
+            elif searchType==1:
                 currentPath=self.frontier.popleft()
             expansions += 1
             remainingExpansions -= 1
@@ -284,8 +268,6 @@ class Scroggle(object):
                     newScore = currentPath[2] + self.letterWeights[ ord(newWord[-1]) - ord('a') ]
                     if searchType == 2:
                         self.heuristic1(newWord, newPath, newScore, a, b, c, d)
-                    elif searchType == 3:
-                        self.heuristic2(newWord, newPath, newScore)
                     elif searchType == 0 or searchType == 1:
                         self.frontier.append([newWord, newPath, newScore])
                     newPath=list(currentPath[1])
@@ -295,9 +277,8 @@ class Scroggle(object):
                     maxFrontierSize = len(self.frontier)
                 #If we are in A* we need to sort the frontier
                 if searchType == 2:
-                    sorted(self.frontier, key = itemgetter(3))
-                elif searchType == 3:
-                    sorted(self.frontier, key = itemgetter(2))
+                    self.frontier = sorted(self.frontier, key = itemgetter(3))
+
         returnValues={}
         returnValues["searchType"]=searchType
         returnValues["expansions"]=expansionLimit
@@ -311,7 +292,8 @@ class Scroggle(object):
         returnValues["avgDepth"] = avgDepth / expansions
         returnValues["maxDepth"] = maxDepth
         returnValues["avgBranching"] = avgBranching / expansions
-        self.printEverything(returnValues)
+        if printing:
+            self.printEverything(returnValues)
         return returnValues
 
     def printEverything(self, values):
@@ -320,9 +302,7 @@ class Scroggle(object):
         elif(values["searchType"] == 1):
             print("Search Type: Bredth First Search")
         elif(values["searchType"] == 2):
-            print("Searth Type: Super Informed A*")
-        elif(values["searchType"]==3):
-            print("Search Type: A* using h1()")
+            print("Searth Type: A* using h1()")
 
         print("Number of expansions: ", values["expansions"])
         print(len(values["goodWords"]),"Words found:  ", sorted(values["goodWords"]))
