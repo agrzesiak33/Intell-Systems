@@ -14,6 +14,7 @@ class Scroggle(object):
         self.averageWordScore = {}
         self.avgNumLettersAfterPrefix = {}
         self.letterWeights = []
+        self.constants = {}
 
     # @brief    Takes a file name and makes it usable
     # @parem[in]    boardFile
@@ -149,6 +150,47 @@ class Scroggle(object):
                 if [x, y] not in currentPath:
                     availableMoves . append([x,y])
         return availableMoves
+
+    # @brief    Since my values for a, b, c, and d are educated guesses, this function
+    #           finds the best values for each scenario.
+    # @details  iterates through every value of a, b, c, and d with every possible number of
+    #           expansions to make a dictionary with the best constants for every scenario.
+    def findBestConstants(self, printing):
+        a = 0
+        b = -100
+        c = -200
+        d = -1000
+        expansions = 1
+        tempScore = 0
+
+        returnValue = None
+
+
+        while expansions <= 10000:
+            tempScore = 0
+            self.constants[expansions] = [0, 0, 0, 0]
+            tempWords = set()
+            a = 1
+            b =1
+            c = 1
+            d = -1000
+
+            while d <= 1000:
+                returnValue = self.scroggle(2, expansions, False, False, a, b, c, d)
+                if (returnValue["totalScore"] > tempScore):
+                    self.constants[expansions] = [a, b, c, d]
+                    tempScore = returnValue["totalScore"]
+                    tempWords = returnValue["goodWords"]
+                d += 1
+            if printing:
+                print("Expansion: ", expansions)
+                print("a, b, c, d: ", self.constants[expansions])
+                print("Score: ", tempScore)
+                print("Good words: ", tempWords)
+                print()
+            expansions += 1
+
+
 
     # @brief    Looks through the frontier and selects the best option to expand
     # @details  This heuristic looks at three pieces of information.
