@@ -6,7 +6,7 @@ class Scroggle(object):
 
     def __init__(self):
         self.dimen=0
-        self.frontier=[]
+        self.frontier=deque()
         self.board=[]
         self.numQueries=0
         self.dict=set()
@@ -14,7 +14,6 @@ class Scroggle(object):
         self.averageWordScore = {}
         self.avgNumLettersAfterPrefix = {}
         self.letterWeights = []
-        self.goodWords = set()
 
     # @brief    Takes a file name and makes it usable
     # @parem[in]    boardFile
@@ -25,11 +24,7 @@ class Scroggle(object):
                 letters=line.split()
                 for yindex, char in enumerate(letters, start=0):
                     self.board.append(char.lower())
-                    self.frontier.append([char.lower(),
-                                          [[xindex, yindex]],
-                                          self.letterWeights[ord(char.lower())-ord('a')]])
             self.dimen=xindex+1
-        self.frontier=deque(self.frontier)
 
     # @brief    If the word has a 'qu' we handle it here
     # @details  As per the instructions, a board with the word 'queen'
@@ -140,6 +135,7 @@ class Scroggle(object):
     # @brief        Finds all possible unexplored paths within the board
     # @param[in]    currentPath
     #               a list containing the [x, y] values that have already been visited
+    # @param[out]   a list containing [x, y] values that are available to expand
     def findPossiblePaths(self, currentPath):
         mostRecent = currentPath[-1]
         availableMoves=[]
@@ -164,22 +160,42 @@ class Scroggle(object):
     #           the prefix is low, it is 'rewarded'; having more letters after the prefix decreases
     #           the goodness quickly giving priority to prefixes that show up often and short prefixes.
     # @param[out]   list containing the path that shows the most promise
-    # @notes    Assumes that each frontier node[3] is a number containing the 'goodness'
-    def heuristic(self, word, path, score, a, b, c, d):
+    # @note     Assumes that each frontier node[3] is a number containing the 'goodness'
+    # @note     A significant number of nodes are not appended to the frontier because the heuristic
+    #           function is unable to find some prefix to assign a 'goodness' value meaning that we
+    #           can eliminate hundreds of nodes for expansion before even comparing it do the dictionary.
+    # @note     The popping is done in the scroggle function but for this heuristic the frontier is sorted
+    #           with the highest value on the right so nodes are popped from the right.
+    def heuristic1(self, word, path, score, a, b, c, d):
         try:
             heuristicScore = (self.numWordsWithPrefix[word] * a) + (self.averageWordScore[word]*b) + (self.avgNumLettersAfterPrefix[word]*c) + d
         except KeyError:
             return
         self.frontier.append([word, path, score, heuristicScore])
-        sorted(self.frontier, key = itemgetter(3))
+        return
 
+    # @brief    This h(n) takes the score of a word into account.  From previous runs the
+    #           words that are found are usualyl the ones with the fewest number of points.
+    #           Although their point values are small, their occurance is higher.
+    # @param[in]    word
+    #               The current string that we are interested in
+    # @param[in]    path
+    #               The x,y coordinates of letters that have been previously visited
+    # @param[in]    score
+    #               The score the word has accumulated so far
+    # @note     The popping is done in the scroggle function but for this heuristic,
+    #           the frontier is sorted with the highest scores on the right so when popping
+    #           nodes, they are to be taken from the left
+    def heuristic2(self, word, path, score):
+        self.frontier.append([word, path, score])
+        return
 
     # @brief    Searches the board for goal states
     # @details  Depending on the searchType, it usees BFS, DFS, or A* to
     #           search for goal states which in this case is a word in the dictionary
     #
     # @param[in]    searchType
-    #               0 = DFS     1 = BFS     2 = A*
+    #               0 = DFS     1 = BFS     2 = A*(h1)      3 = A*h(2)
     # @param[in[    queryLimit
     #               integer of the number of dictionary queries the solver is allowed
     #               queryLimit < 0 = unlimited      querLimit > 0 = finite
@@ -189,14 +205,26 @@ class Scroggle(object):
     #               Only used for A* so if A* is selects as the searchType and the values
     #               are not included, -1 is returned
     # @param[out]   -1 if an error, 1 otherwise
-    def scroggle(self, searchType, queryLimit, dumbness, a = -1, b = -1, c = -1, d = -1):
-        if(searchType == 2 and a==-1 and b==-1 and c==-1 and d==-1):
+    def scroggle(self, searchType, expansionLimit, dumbness, a = -1, b = -1, c = -1, d = -1):
+        if (searchType == 2 and a == -1 and b == -1 and c == -1 and d == -1):
             return -1
-        if(queryLimit == 0):
+        if (expansionLimit == 0):
             return -1
-        self.numQueries = queryLimit
 
+        #   Add the individual board tiles to the frontier
+        for index, char in enumerate(self.board, start=0):
+            try:
+                heuristicScore = (self.numWordsWithPrefix[char] * a) + (self.averageWordScore[char] * b) + (self.avgNumLettersAfterPrefix[char] * c) + d
+                self.frontier.append([char, [[index % self.dimen, int(index / self.dimen)]], self.getWordScore(char), heuristicScore])
+            except KeyError:
+                continue
+
+        goodWords =set()
+
+        remainingExpansions = expansionLimit
         dictQueries =0
+        expansions = 0
+
         startTime = time.perf_counter()
         newWord=""
         newPath = []
@@ -204,33 +232,38 @@ class Scroggle(object):
         foundPartial = False
         totalScore = 0
 
+        frontierSize = self.dimen * self.dimen
+        maxFrontierSize = self.dimen * self.dimen
+
+        avgDepth = 0
+        maxDepth = 0
+
+        avgBranching = 0
+
         while self.frontier:
-            if self.numQueries==0 and queryLimit > 0:
+            if remainingExpansions==0 and expansionLimit > 0:
                 break
-
             currentPath=[]
-            if searchType ==0:
+            if searchType ==0 or searchType == 2:
                 currentPath=self.frontier.pop()
-            elif searchType==1:
+            elif searchType==1 or searchType == 3:
                 currentPath=self.frontier.popleft()
-            elif searchType == 2:
-                currentPath = self.frontier.pop()
+            expansions += 1
+            remainingExpansions -= 1
 
-
-
-
-
+            avgDepth += len(currentPath[0])
+            if len(currentPath[0])>maxDepth:
+                maxDepth = len(currentPath[0])
 
             #   Check to see if word is in the dictionary
             foundPartial = False
             if len(currentPath[0]) > 1:
-                self.numQueries-=1
                 dictQueries+=1
                 try:
                     self.numWordsWithPrefix[currentPath[0]]
                     foundPartial = True
                     if(currentPath[0] in self.dict):
-                        self.goodWords.add(currentPath[0])
+                        goodWords.add(currentPath[0])
                         totalScore += currentPath[2]
                 except KeyError:
                     foundPartial = False
@@ -238,6 +271,7 @@ class Scroggle(object):
             #   Expand nodes and add them to the frontier
             if(foundPartial == True or len(currentPath[0])==1 or dumbness == True):
                 availablePaths=self.findPossiblePaths(currentPath[1])
+                avgBranching += len(availablePaths)
                 if availablePaths == []:
                     continue
 
@@ -249,13 +283,54 @@ class Scroggle(object):
                     newPath.append(availablePath)
                     newScore = currentPath[2] + self.letterWeights[ ord(newWord[-1]) - ord('a') ]
                     if searchType == 2:
-                        self.heuristic(newWord, newPath, newScore, a, b, c, d)
+                        self.heuristic1(newWord, newPath, newScore, a, b, c, d)
+                    elif searchType == 3:
+                        self.heuristic2(newWord, newPath, newScore)
                     elif searchType == 0 or searchType == 1:
                         self.frontier.append([newWord, newPath, newScore])
                     newPath=list(currentPath[1])
-        print("Solver runtime: ", time.perf_counter()-startTime)
-        print("Dict queries: ", dictQueries)
-        return 1
+                frontierSize += len(self.frontier)
+
+                if len(self.frontier) > maxFrontierSize:
+                    maxFrontierSize = len(self.frontier)
+                #If we are in A* we need to sort the frontier
+                if searchType == 2:
+                    sorted(self.frontier, key = itemgetter(3))
+                elif searchType == 3:
+                    sorted(self.frontier, key = itemgetter(2))
+        returnValues={}
+        returnValues["searchType"]=searchType
+        returnValues["expansions"]=expansionLimit
+        returnValues["totalScore"]=totalScore
+        returnValues["goodWords"]=goodWords
+        returnValues["avgFrontierSize"]= (frontierSize / (expansions+1))
+        returnValues["maxFrontierSize"] = maxFrontierSize
+        returnValues["runtime"] = time.perf_counter()-startTime
+        returnValues["dictQueries"] = dictQueries
+        returnValues["maxFrontierSize"] = maxFrontierSize
+        returnValues["avgDepth"] = avgDepth / expansions
+        returnValues["maxDepth"] = maxDepth
+        returnValues["avgBranching"] = avgBranching / expansions
+        self.printEverything(returnValues)
+        return returnValues
+
+    def printEverything(self, values):
+        if(values["searchType"]==0):
+            print("Search Type:  Depth Fisrt Search")
+        elif(values["searchType"] == 1):
+            print("Search Type: Bredth First Search")
+        elif(values["searchType"] == 2):
+            print("Searth Type: Super Informed A*")
+        elif(values["searchType"]==3):
+            print("Search Type: A* using h1()")
+
+        print("Number of expansions: ", values["expansions"])
+        print(len(values["goodWords"]),"Words found:  ", sorted(values["goodWords"]))
+        print("Average frontier size:  ", values["avgFrontierSize"])
+        print("Max frontier size:  ", values["maxFrontierSize"])
+        print("Average depth:  ", values["avgDepth"])
+        print("Average brancing factor:  ", values["avgBranching"])
+        print("Total score:  ", values["totalScore"])
 
 
 
@@ -263,5 +338,5 @@ scroggleInstance = Scroggle()
 scroggleInstance.importWeights("scrabble-vals.txt")
 scroggleInstance.importBoard("fourboard2.txt")
 scroggleInstance.importDictionary("dict.txt")
-scroggleInstance.scroggle(0,-1,False)
-print(scroggleInstance.numWordsWithPrefix["az"])
+score = scroggleInstance.scroggle(3,300,True)
+#scroggleInstance.scroggle(3,-1,True, 2,1,-10,30)
