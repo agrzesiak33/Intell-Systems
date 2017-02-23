@@ -156,56 +156,79 @@ class Scroggle(object):
                     availableMoves . append([x,y])
         return availableMoves
 
-    # @brief    Since my values for a, b, c, and d are educated guesses, this function
-    #           finds the best values for each scenario.
-    # @details  iterates through every value of a, b, c, and d with every possible number of
+    # @brief    This function will generate random boards and calculate the best a, b, and c
+    #           values for every expansion up until
+    # @details  iterates through every value of a, b, c with every possible number of
     #           expansions to make a dictionary with the best constants for every scenario.
+    # @param[in]    printing
+    #               A boolean value to determine whether or not to print everything
     def findBestConstants(self, printing):
-        a = 0
+        print("Finding best constants...")
+        a = -5
         b = -100
         c = -200
-        d = -1000
         expansions = 1
         tempScore = 0
+        averageA = 0
+        averageB = 0
+        averageC = 0
+        constantsExtensionsBoards = [[[0, 0, 0] for i in range(40)] for j in range(50)]
 
-        returnValue = None
-
-
-        while expansions <= 10000:
+        for board in range(50):
+            print("On board ",board)
+            averageA = 0
+            averageB = 0
+            averageC = 0
             tempScore = 0
-            self.constants[expansions] = [0, 0, 0, 0]
-            tempWords = set()
-            a = 1
-            b =1
-            c = 1
-            d = -1000
 
-            while d <= 1000:
-                returnValue = self.scroggle(2, expansions, False, False, a, b, c, d)
-                if (returnValue["totalScore"] > tempScore):
-                    self.constants[expansions] = [a, b, c, d]
-                    tempScore = returnValue["totalScore"]
-                    tempWords = returnValue["goodWords"]
-                d += 1
-            if printing:
-                print("Expansion: ", expansions)
-                print("a, b, c, d: ", self.constants[expansions])
-                print("Score: ", tempScore)
-                print("Good words: ", tempWords)
-                print()
-            expansions += 1
+
+            self.getRandomBoard()
+            expansions=1
+
+            while expansions <= 40:
+                a=-20
+                b=-8000
+                c=-8000
+                tempScore = 0
+                tempWords = set()
+
+                while a <= 5:
+                    b= -8000
+                    while b <= -2000:
+                        c= -8000
+                        while c <= -3000:
+                            returnValue = self.scroggle(2, expansions, False, False, a, b, c, True)
+                            if (returnValue["totalScore"] > tempScore):
+                                temp = expansions-1
+                                constantsExtensionsBoards[board][temp] = [a,b,c]
+                                tempScore = returnValue["totalScore"]
+                                tempWords = returnValue["goodWords"]
+                            c+=250
+                        b += 250
+                    a += 1
+                expansions+=1
+        for expansion in range(len(constantsExtensionsBoards[0])):
+            averageA = 0
+            averageB = 0
+            averageC = 0
+            for boardConstants in constantsExtensionsBoards:
+                averageA += boardConstants[expansion][0]
+                averageB += boardConstants[expansion][1]
+                averageC += boardConstants[expansion][2]
+            averageA /= len(constantsExtensionsBoards)
+            averageB /= len(constantsExtensionsBoards)
+            averageC /= len(constantsExtensionsBoards)
+            self.constants[expansion]=[averageA, averageB, averageC]
+
+
 
 
 
     # @brief    Looks through the frontier and selects the best option to expand
     # @details  This heuristic looks at three pieces of information.
     #           (x) numWordsWithPrefix, (y) averageWordScore, and (z)avgNumLettersAfterPrefix
-    #           The 'goodness' equation score = ab + by + cz +d constants I came up with are
-    #           a = 2, b = 1, c = -10, d = 30.  If a prefix occurs many times in the
-    #           dictionary it will be 'rewarded'.  If the average score of a word
-    #           with that prefix is high it is 'rewarded'.  If the average number of letters after
-    #           the prefix is low, it is 'rewarded'; having more letters after the prefix decreases
-    #           the goodness quickly giving priority to prefixes that show up often and short prefixes.
+    #           The 'goodness' equation score = ab + by + cz constants I found for an average 4x4 board are
+    #           a = -3, b = -6750, c = -2250.
     # @param[out]   list containing the path that shows the most promise
     # @note     Assumes that each frontier node[3] is a number containing the 'goodness'
     # @note     A significant number of nodes are not appended to the frontier because the heuristic
@@ -365,5 +388,49 @@ scroggleInstance = Scroggle()
 scroggleInstance.importWeights("scrabble-vals.txt")
 scroggleInstance.importBoard("fourboard2.txt")
 scroggleInstance.importDictionary("dict.txt")
-score = scroggleInstance.scroggle(3,300,True)
-#scroggleInstance.scroggle(3,-1,True, 2,1,-10,30)
+#score = scroggleInstance.scroggle(1,300, True, True)
+#scroggleInstance.scroggle(2,30,False, True)
+
+#exit()
+
+
+####FROM HERE DOWN IS JUST OPTIMIZATION STUFF TO PLAY WITH CONSTANTS#########
+scroggleInstance.getRandomBoard()
+scroggleInstance.findBestConstants(True)
+print(scroggleInstance.constants)
+exit()
+
+scores = [0,0,0,0]
+for i in range(2000):
+    scroggleInstance.getRandomBoard()
+    tempValues = [0,0,0,0]
+
+    values = scroggleInstance.scroggle(2, 10, False, False, -5, -5000, -2250)
+    tempValues[0] = values["totalScore"]
+
+    values = scroggleInstance.scroggle(2, 10, False, False, -5, -6750, -2250)
+    tempValues[1] = values["totalScore"]
+
+    values = scroggleInstance.scroggle(2, 10, False, False, -6, -5000, -2250)
+    tempValues[2] = values["totalScore"]
+
+    values = scroggleInstance.scroggle(2, 10, False, False, -3, -6750, -2250)
+    tempValues[3] = values["totalScore"]
+
+    for i in range(4):
+        if tempValues[i] == max(tempValues):
+            scores[i]+=1
+minScore = min(scores)
+for i in range(4):
+    scores[i] -= minScore
+print(scores)
+exit()
+scroggleInstance.scroggle(2,30,False, True, -10,-100,100)
+print()
+scroggleInstance.scroggle(2,30,False, True, -1000,-100,100)
+print()
+scroggleInstance.scroggle(2,30,False, True, -3000,-100,100)
+print()
+scroggleInstance.scroggle(2,30,False, True, -1000,-5000,100)
+print()
+#scroggleInstance.findBestConstants(True)
