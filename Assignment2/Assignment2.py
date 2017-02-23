@@ -133,6 +133,11 @@ class Scroggle(object):
                 else:
                     self.letterWeights.append(int(line[2:-1]))
 
+    # @brief    once a board has already been initlized, this overwrites the current board with a new one.
+    def getRandomBoard(self):
+        for i in range(self.dimen * self.dimen):
+            self.board[i] = chr(random.randint(0, 25) + ord('a'))
+
     # @brief        Finds all possible unexplored paths within the board
     # @param[in]    currentPath
     #               a list containing the [x, y] values that have already been visited
