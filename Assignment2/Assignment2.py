@@ -1,6 +1,7 @@
 import time
 from collections import deque
 from operator import itemgetter
+import random
 
 class Scroggle(object):
 
@@ -66,7 +67,7 @@ class Scroggle(object):
     #           stores the average number of letters that can be expected after the prefix ends
     # @parem[in]    dictFile
     #               String containing the name of a text file with a dictionary
-    def importDictionary(self, dictFile):
+    def importDictionary(self, dictFile, printing = False):
         startTime = time.perf_counter()
         lastLine=""
         prefix = ""
@@ -110,7 +111,8 @@ class Scroggle(object):
                             self.avgNumLettersAfterPrefix[prefix] = len(word)
         self.dict.add(lastline)
         self.addTo_numWordsWithPrefix(lastline)
-        print("Time to import dictionaries: ", time.perf_counter() - startTime)
+        if printing:
+            print("Time to import dictionaries: ", time.perf_counter() - startTime)
 
     # @brief    Converts a word into its total point value
     # @parem[in]    word
@@ -236,11 +238,11 @@ class Scroggle(object):
     #           can eliminate hundreds of nodes for expansion before even comparing it do the dictionary.
     # @note     The popping is done in the scroggle function but for this heuristic the frontier is sorted
     #           with the highest value on the right so nodes are popped from the right.
-    def heuristic1(self, word, path, score, a, b, c, d):
+    def heuristic1(self, word, path, score, a, b, c):
         try:
-            heuristicScore = (self.numWordsWithPrefix[word] * a) + (self.averageWordScore[word]*b) + (self.avgNumLettersAfterPrefix[word]*c) + d
+            heuristicScore = (self.numWordsWithPrefix[word] * a) + (self.averageWordScore[word]*b) + (self.avgNumLettersAfterPrefix[word]*c)
         except KeyError:
-            return
+            heuristicScore = -99999999999
         self.frontier.append([word, path, score, heuristicScore])
         return
 
@@ -255,12 +257,22 @@ class Scroggle(object):
     #               queryLimit < 0 = unlimited      querLimit > 0 = finite
     # @param[in]    dumbness
     #               True for no prefix optimization     False for optimization
-    # @params[in]   a, b, c, d
+    # @params[in]   a, b, c,
     #               Only used for A* so if A* is selects as the searchType and the values
     #               are not included, -1 is returned
     # @param[out]   -1 if an error, 1 otherwise
-    def scroggle(self, searchType, expansionLimit, dumbness, printing, a = -1, b = -1, c = -1, d = -1):
-        if (searchType == 2 and a == -1 and b == -1 and c == -1 and d == -1):
+    def scroggle(self, searchType, expansionLimit, dumbness, printing, a = -1, b = -1, c = -1, testing = False):
+        self.frontier = deque()
+        if testing == False:
+            try:
+                constants = self.constants[expansionLimit]
+            except:
+                constants = self.constants[49]
+            a = constants[0]
+            b = constants[1]
+            b = constants[2]
+
+        if (searchType == 2 and a == -1 and b == -1 and c == -1):
             return -1
         if (expansionLimit == 0):
             return -1
@@ -268,7 +280,7 @@ class Scroggle(object):
         #   Add the individual board tiles to the frontier
         for index, char in enumerate(self.board, start=0):
             try:
-                heuristicScore = (self.numWordsWithPrefix[char] * a) + (self.averageWordScore[char] * b) + (self.avgNumLettersAfterPrefix[char] * c) + d
+                heuristicScore = (self.numWordsWithPrefix[char] * a) + (self.averageWordScore[char] * b) + (self.avgNumLettersAfterPrefix[char] * c)
                 self.frontier.append([char, [[index % self.dimen, int(index / self.dimen)]], self.getWordScore(char), heuristicScore])
             except KeyError:
                 continue
@@ -337,7 +349,7 @@ class Scroggle(object):
                     newPath.append(availablePath)
                     newScore = currentPath[2] + self.letterWeights[ ord(newWord[-1]) - ord('a') ]
                     if searchType == 2:
-                        self.heuristic1(newWord, newPath, newScore, a, b, c, d)
+                        self.heuristic1(newWord, newPath, newScore, a, b, c)
                     elif searchType == 0 or searchType == 1:
                         self.frontier.append([newWord, newPath, newScore])
                     newPath=list(currentPath[1])
