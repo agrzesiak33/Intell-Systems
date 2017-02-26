@@ -210,6 +210,10 @@ class Scroggle(object):
         for i in range(self.dimen * self.dimen):
             self.board[i] = chr(random.randint(0, 25) + ord('a'))
 
+    def loadBoard(self, chars):
+        for index, char in enumerate(chars, start=0):
+            self.board[index] = char
+
     # @brief        Finds all possible unexplored paths within the board
     # @param[in]    currentPath
     #               a list containing the [x, y] values that have already been visited
@@ -218,10 +222,11 @@ class Scroggle(object):
         mostRecent = currentPath[-1]
         availableMoves=[]
 
-        for x in range(mostRecent[0]-1, mostRecent[0]+1):
+        for x in range(mostRecent[0]-1, mostRecent[0]+2):
             if x < 0 or x >= self.dimen:
                 continue
-            for y in range(mostRecent[1]-1, mostRecent[0]+1):
+
+            for y in range(mostRecent[1]-1, mostRecent[1]+2):
                 if y < 0 or y >= self.dimen:
                     continue
                 if [x, y] not in currentPath:
@@ -257,18 +262,18 @@ class Scroggle(object):
             self.getRandomBoard()
             expansions=1
 
-            while expansions <= 40:
+            while expansions <= 60:
                 a=-20
-                b=-8000
-                c=-8000
+                b=-2000
+                c=-2000
                 tempScore = 0
                 tempWords = set()
 
-                while a <= 5:
-                    b= -8000
-                    while b <= -2000:
-                        c= -8000
-                        while c <= -3000:
+                while a <= 20:
+                    b= -2000
+                    while b <= 2000:
+                        c= -2000
+                        while c <= 2000:
                             returnValue = self.scroggle(2, expansions, False, False, a, b, c, True)
                             if (returnValue["totalScore"] > tempScore):
                                 temp = expansions-1
