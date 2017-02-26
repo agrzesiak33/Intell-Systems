@@ -149,30 +149,36 @@ class Scroggle(object):
                     self.handleQU(word)
 
                 for i in range(len(word)):
+                    #If the whole word is there
                     if i==(len(word)-1):
                         self.dict.add(word)
                         try:
                             self.numWordsWithPrefix[word] += 1
                         except KeyError:
                             self.numWordsWithPrefix[word] = 1
+                            self.avgNumLettersAfterPrefix[word] = 0
+                            self.averageWordScoreAfterPrefix[word] = 0
                     else:
                         prefix = word[:i + 1]
                         #   If the prefix has already been encounteres
                         try:
-                            oldAverage = self.averageWordScore[prefix]
-                            oldNumPrefixes = self.numWordsWithPrefix[prefix]
-                            newAverage = (oldAverage + wordScore)/(oldNumPrefixes+1)
-                            self.averageWordScore[prefix] = newAverage
+                            oldAverage = self.averageWordScoreAfterPrefix[prefix] * self.numWordsWithPrefix[prefix]
+                            newAverage = (oldAverage + self.getWordScore(lastline[i+1:]))
+                            newAverage /= (self.numWordsWithPrefix[prefix] + 1)
+                            self.averageWordScoreAfterPrefix[prefix] = newAverage
+
+                            oldAverage = self.avgNumLettersAfterPrefix[prefix] * self.numWordsWithPrefix[prefix]
+                            newAverage = (oldAverage + len(word)-i-1)
+                            newAverage /= (self.numWordsWithPrefix[prefix] +1)
+                            self.avgNumLettersAfterPrefix[prefix] = newAverage
+
                             self.numWordsWithPrefix[prefix] += 1
 
-                            oldAverage = self.avgNumLettersAfterPrefix[prefix]
-                            newAverage = (oldAverage + len(word))/(oldNumPrefixes+1)
-                            self.avgNumLettersAfterPrefix[prefix] = newAverage
                         #   If the prefix is new
                         except KeyError:
                             self.numWordsWithPrefix[prefix] = 1
-                            self.averageWordScore[prefix] = wordScore
-                            self.avgNumLettersAfterPrefix[prefix] = len(word)
+                            self.averageWordScoreAfterPrefix[prefix] = self.getWordScore(lastline[i+1:])
+                            self.avgNumLettersAfterPrefix[prefix] = len(word)-i-1
         self.dict.add(lastline)
         self.addTo_numWordsWithPrefix(lastline)
         if printing:
